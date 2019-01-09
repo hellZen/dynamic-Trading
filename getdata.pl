@@ -28,6 +28,8 @@ $ly=$y-2;                               #current year minus two  - Check this
 #  this is a really dumb way to strip the header
 #  cleverness in programming can be an expensive conceit
 `cat dat.txt | grep [0-9] > dat2.txt`;
+`awk -F "," '{print $1\",\"$2\",\"$3\",\"$4\",\"$5\",\"$6\",\"$7}' dat2.txt > dat4.txt`;
+
 
 open(HISTORY, '<dat.txt');
 open(H2, '<dat2.txt');
