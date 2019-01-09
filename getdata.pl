@@ -29,36 +29,34 @@ $ly=$y-2;                               #current year minus two  - Check this
 #  cleverness in programming can be an expensive conceit
 `cat dat.txt | grep [0-9] > dat2.txt`;
 
-open(HISTORY, '<dat.txt');  #Original File fdrom Service Provider
-open(H2, '<dat2.txt');      #Original File minus any non numeric data (headers)
+open(HISTORY, '<dat.txt');
+open(H2, '<dat2.txt');
 open(H3, '>dat3.txt');
 $hdr = "Date,Open,High,Low,Close,Volume,Adj Close";
 
 
 ###CRITICAL###################################################
-# daily data stream (dat2) needs to be reversed for processing
+# daily data stream needs to be reversed for processing
 #- source data comes with oldest data in line 1
 #  analysis needs to look back to previous data to determine trend reversal
-#  dat2 is read into list ($lines) as csv strings and later sebarated using commas
 #########################################################################
 my(@lines) = <H2>;     #Read file into ARRAY (list of lines) for stats and printing
 @lines = sort(@lines); # reverse Order as oldest first for calculations
 my $limit = @lines;    # extract number of entries
 
 
-
+#############################################################################
+#############################################################################
 #############################################################################
 # Print Summary stats....
-############################################################################
-#  Init accumulators for trend analysis
 my($AccVol)=0; 
 my($AccClose)=0; 
 my($AccRange)=0; 
 my($AccLC)=0; 
-#my($N)=260;  # 5 days times 52 weeks for calulating the year's summary stat line values
+my($N)=260;  # 5 days times 52 weeks for calulating the year's summary stat line values
 
 
-$switch=1; # first iteration indicator
+$switch=1; 
 #($N,$AccVol)=&SummaryLine(100);
 for ($i=$limit-1; $i>=0; $i--)
  {
@@ -72,12 +70,10 @@ for ($i=$limit-1; $i>=0; $i--)
     #print "<br>L=$line";  #DEBUG
 
    if ( $switch == 0 )  
-       	{ 
-	  if ( ($xLow)  < ($xMin)) { $xMin = $xLow };
+       { 
+          if ( ($xLow)  < ($xMin)) { $xMin = $xLow };
           if ( ($xHigh) > ($xMax)) { $xMax = $xHigh };
-	}
-   else
-	{
+       }else{
           #initialize min,max, last close on first iteration
           $xMin = $xLow; 
           $xMax = $xHigh; 
@@ -87,7 +83,7 @@ for ($i=$limit-1; $i>=0; $i--)
 
      #print "<br>Lines $limit - N $i - Low $xLow Min $xMin High $xMAx Max $xHigh -- $line\n";    #DEBUG
 
- }
+  }
 
 $range=$xMax - $xMin;  
 $cur=$Last - $xLow; 
@@ -112,18 +108,18 @@ my($AccVol)=0; my($AccClose)=0; my($AccRange)=0; my($AccLC)=0;
 my($N)=50;   #Figure 50 Day stats
 
 for ($i=$limit; $i>=$limit-$N; $i--)
-	{
-          $line = $lines[$i]; # pull current values from array      
-    	  chomp($line); # Good practice to always strip the trailing newline.
-          # separate all the data items into vars for calc and formatting
-	  # my($xDate,$xOpen,$xHigh,$xLow,$xClose,$xVol,$xCrapola) = split(/,/, $line);
-	  ($xDate,$xOpen,$xHigh,$xLow,$xClose,$xAdjClose,$xVol,$xdividend,$xsplit_coefficient) = split(/,/, $line);
- 	  $AccVol=$xVol+$AccVol;  # accumulate Volume for 100 SMA
-	  $AccClose=$xClose+$AccClose;  # accumulate Close price for 50 SMA
-	  $AccRange=$AccRange+($xHigh-$xLow);
-	  $AccLC=$AccLC+($xClose-$xLow);
-	  #print "$line<br>";     #DEBUG
-	}
+ {
+ 	$line = $lines[$i]; # pull current values from array
+	 chomp($line); # Good practice to always strip the trailing newline.
+	# separate all the data items into vars for calc and formatting
+	# my($xDate,$xOpen,$xHigh,$xLow,$xClose,$xVol,$xCrapola) = split(/,/, $line);
+	($xDate,$xOpen,$xHigh,$xLow,$xClose,$xAdjClose,$xVol,$xdividend,$xsplit_coefficient) = split(/,/, $line);
+	$AccVol=$xVol+$AccVol;  # accumulate Volume for 100 SMA
+	$AccClose=$xClose+$AccClose;  # accumulate Close price for 50 SMA
+	$AccRange=$AccRange+($xHigh-$xLow);
+	$AccLC=$AccLC+($xClose-$xLow);
+	#print "$line<br>";     #DEBUG
+ }
 $AccVol=$AccVol/$N; 
 $AccClose=$AccClose/$N; 
 $AccRange=$AccRange/$N; 
