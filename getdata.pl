@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use CGI qw(:standard);
 
+
 #!!!went up to /usr and set permissions to create/delete
 # and applied downward for remote edit
 
@@ -9,12 +10,9 @@ print header;   # Tell perl to send a html header.
      		# rather then <stdout>(command line
      		# on the server.)
 # Initialize some Variables for later
-my $time2 = time();	#load the start time for execution usage timing
-my $BullFlip=0;         #Signal for downward trend reversal
-my $BearFlip=0;         #Signal for Upward   trend reversal
-my $Countdown=0;        #Length of signalling trend is nine
-my $Reference=0;        #?????????????
-my $Support=0;
+#my $time2 = time();	#load the start time for execution usage timing
+my $time2 = `date +%s%N`; # Returns ssssssssss.uuuuuu in scalar context
+
 $m=`date '+%m-%d-%Y'| cut -d - -f1`;    #Run-date -mm
 $d=`date '+%m-%d-%Y'| cut -d - -f2`;    #Run-date -dd
 $y=`date '+%m-%d-%Y'| cut -d - -f3`;    #Run-date -yyyy
@@ -31,34 +29,36 @@ $ly=$y-2;                               #current year minus two  - Check this
 #  cleverness in programming can be an expensive conceit
 `cat dat.txt | grep [0-9] > dat2.txt`;
 
-open(HISTORY, '<dat.txt');
-open(H2, '<dat2.txt');
+open(HISTORY, '<dat.txt');  #Original File fdrom Service Provider
+open(H2, '<dat2.txt');      #Original File minus any non numeric data (headers)
 open(H3, '>dat3.txt');
 $hdr = "Date,Open,High,Low,Close,Volume,Adj Close";
 
 
 ###CRITICAL###################################################
-# daily data stream needs to be reversed for processing
+# daily data stream (dat2) needs to be reversed for processing
 #- source data comes with oldest data in line 1
-#  analysis needs to look back to previous data to determin trend reversal
+#  analysis needs to look back to previous data to determine trend reversal
+#  dat2 is read into list ($lines) as csv strings and later sebarated using commas
 #########################################################################
 my(@lines) = <H2>;     #Read file into ARRAY (list of lines) for stats and printing
 @lines = sort(@lines); # reverse Order as oldest first for calculations
 my $limit = @lines;    # extract number of entries
 
 
-#############################################################################
-#############################################################################
+
 #############################################################################
 # Print Summary stats....
+############################################################################
+#  Init accumulators for trend analysis
 my($AccVol)=0; 
 my($AccClose)=0; 
 my($AccRange)=0; 
 my($AccLC)=0; 
-my($N)=260;  # 5 days times 52 weeks for calulating the year's summary stat line values
+#my($N)=260;  # 5 days times 52 weeks for calulating the year's summary stat line values
 
 
-$switch=1; 
+$switch=1; # first iteration indicator
 #($N,$AccVol)=&SummaryLine(100);
 for ($i=$limit-1; $i>=0; $i--)
  {
@@ -72,10 +72,12 @@ for ($i=$limit-1; $i>=0; $i--)
     #print "<br>L=$line";  #DEBUG
 
    if ( $switch == 0 )  
-       { 
-          if ( ($xLow)  < ($xMin)) { $xMin = $xLow };
+       	{ 
+	  if ( ($xLow)  < ($xMin)) { $xMin = $xLow };
           if ( ($xHigh) > ($xMax)) { $xMax = $xHigh };
-       }else{
+	}
+   else
+	{
           #initialize min,max, last close on first iteration
           $xMin = $xLow; 
           $xMax = $xHigh; 
@@ -85,7 +87,7 @@ for ($i=$limit-1; $i>=0; $i--)
 
      #print "<br>Lines $limit - N $i - Low $xLow Min $xMin High $xMAx Max $xHigh -- $line\n";    #DEBUG
 
-  }
+ }
 
 $range=$xMax - $xMin;  
 $cur=$Last - $xLow; 
@@ -110,18 +112,18 @@ my($AccVol)=0; my($AccClose)=0; my($AccRange)=0; my($AccLC)=0;
 my($N)=50;   #Figure 50 Day stats
 
 for ($i=$limit; $i>=$limit-$N; $i--)
- {
- 	$line = $lines[$i]; # pull current values from array
-	 chomp($line); # Good practice to always strip the trailing newline.
-	# separate all the data items into vars for calc and formatting
-	# my($xDate,$xOpen,$xHigh,$xLow,$xClose,$xVol,$xCrapola) = split(/,/, $line);
-	($xDate,$xOpen,$xHigh,$xLow,$xClose,$xAdjClose,$xVol,$xdividend,$xsplit_coefficient) = split(/,/, $line);
-	$AccVol=$xVol+$AccVol;  # accumulate Volume for 100 SMA
-	$AccClose=$xClose+$AccClose;  # accumulate Close price for 50 SMA
-	$AccRange=$AccRange+($xHigh-$xLow);
-	$AccLC=$AccLC+($xClose-$xLow);
-	#print "$line<br>";     #DEBUG
- }
+	{
+          $line = $lines[$i]; # pull current values from array      
+    	  chomp($line); # Good practice to always strip the trailing newline.
+          # separate all the data items into vars for calc and formatting
+	  # my($xDate,$xOpen,$xHigh,$xLow,$xClose,$xVol,$xCrapola) = split(/,/, $line);
+	  ($xDate,$xOpen,$xHigh,$xLow,$xClose,$xAdjClose,$xVol,$xdividend,$xsplit_coefficient) = split(/,/, $line);
+ 	  $AccVol=$xVol+$AccVol;  # accumulate Volume for 100 SMA
+	  $AccClose=$xClose+$AccClose;  # accumulate Close price for 50 SMA
+	  $AccRange=$AccRange+($xHigh-$xLow);
+	  $AccLC=$AccLC+($xClose-$xLow);
+	  #print "$line<br>";     #DEBUG
+	}
 $AccVol=$AccVol/$N; 
 $AccClose=$AccClose/$N; 
 $AccRange=$AccRange/$N; 
@@ -193,44 +195,51 @@ print "</table>";
 #OUTPUT:Print Detail Table Header
 print "<table border=1>\n ";
 $HDR  = "<tr><td>Date</td>
-<td>Open</td><td>High</td>
-<td title='Low for the day'>Low</td>
-<td>Close</td><td>Volume</td>
-<td>Rel_Vol</td>
-<td>Change</td><td>15SMA</td>
-<td>50SMA</td>
-<td>Pop</td>
-<td>Gap</td><td>Range</td>
-<td>LC</td>
-<td>Candle</td>
-<td>TD</td>
-</tr>";
+	<td>Open</td><td>High</td>
+	<td title='Low for the day'>Low</td>
+	<td>Close</td><td>Volume</td>
+	<td>Rel_Vol</td>
+	<td>Change</td><td>15SMA</td>
+	<td>50SMA</td>
+	<td>Pop</td>
+	<td>Gap</td><td>Range</td>
+	<td>LC</td>
+	<td>Candle</td>
+	<td>DeMark Signal Activity</td>
+	</tr>";
 print "$HDR<br>\n";
 
 
 #    Print detail data table
 for ($i=0; $i < $limit; $i++)
- {
- # Good practice to store $_ value because # subsequent operations may change it.
- # my($line) = $_;
- # Good practice to always strip the trailing # newline from the line.
- $line = $lines[$i];
- chomp($line);
-#DEBUG print "<br>OL=$line";
+ 	{
+	  # Good practice to store $_ value because # subsequent operations may change it.
+  	  # my($line) = $_;
+  	  # Good practice to always strip the trailing # newline from the line.
+	  $line = $lines[$i];
+ 	  chomp($line);
+ 	  #DEBUG print "<br>OL=$line";
 
-#my($Date,$Open,$High,$Low,$Close,$Vol,$Crapola) = split(/,/, $line);
-### Current Day Data
-my($Date,$Open,$High,$Low,$Close,$AdjClose,$Vol,$dividend,$split_coefficient) =  split(/,/, $line);
- $l3=$lines[$i-1];
-# my($PDate,$POpen,$PHigh,$PLow,$PClose,$PVol,$PCrapola)= split(/,/, $l3);
-### Previous Day Data
-my($PDate,$POpen,$xHigh,$PLow,$PClose,$PAdjClose,$PVol,$Pdividend,$Psplit_coefficient) = split(/,/, $l3);
-$OpenColor='White';
-$CloseColor='White';
-$SMAColor='White';
-$VOLColor='White';
-if ( $Open < $PClose ) { $OpenColor='Red';      }else{ $OpenColor='LightGreen'; }
-if ( $Open > $Close )   { $CloseColor='Red';     }else{ $CloseColor='LightGreen'; }
+	#my($Date,$Open,$High,$Low,$Close,$Vol,$Crapola) = split(/,/, $line);
+	### Current Day Data
+	my($Date,$Open,$High,$Low,$Close,$AdjClose,$Vol,$dividend,$split_coefficient) =  split(/,/, $line);
+	 $l3=$lines[$i-1];
+	# my($PDate,$POpen,$PHigh,$PLow,$PClose,$PVol,$PCrapola)= split(/,/, $l3);
+	### Previous Day Data
+	my($PDate,$POpen,$xHigh,$PLow,$PClose,$PAdjClose,$PVol,$Pdividend,$Psplit_coefficient) = split(/,/, $l3);
+	$OpenColor='White';
+	$CloseColor='White';
+	$SMAColor='White';
+	$VOLColor='White';
+
+	if ( $Open < $PClose ) 
+		{ $OpenColor='Red';      }
+	else
+		{ $OpenColor='LightGreen'; }
+	if ( $Open > $Close )   
+		{ $CloseColor='Red';     }
+	else
+		{ $CloseColor='LightGreen'; }
 
 #&Calculations();
 
@@ -256,20 +265,23 @@ $close10=0;
          }
         $close10=($close10/50);   #50 Day Average Close Price
 
-if ( $close10 > $close5 ) { $SMAColor='Red'; }
-else  { $SMAColor='LightGreen'; }
+	if ( $close10 > $close5 ) 
+		{ $SMAColor='Red'; }
+	else  { $SMAColor='LightGreen'; }
 $SMAGAP=$close10-$close5;
 
 #------------- 100 day moving average of volume for deviation calculation
 $Crapola = 0; $vol100=0; $ACCvol100=0;
-      for ($j=$i; $j>=$i-100; $j-- ) {
-        $l2=$lines[$j];
-        ($xDate,$xOpen,$xHigh,$xLow,$xClose,$xAdjClose,$xVol,$xdividend,$xsplit_coefficient)  = split(/,/, $l2);
-        $ACCvol100=$ACCvol100 + $xVol;
-         }
+      for ($j=$i; $j>=$i-100; $j-- ) 
+		{
+        	  $l2=$lines[$j];
+        	  ($xDate,$xOpen,$xHigh,$xLow,$xClose,$xAdjClose,$xVol,$xdividend,$xsplit_coefficient)  = split(/,/, $l2);
+        	  $ACCvol100=$ACCvol100 + $xVol;
+         	}
+
         $vol100=($ACCvol100/100);
         $Crapola=$Vol/$vol100;
- $VOLColor='Yellow';
+$VOLColor='Yellow';
 if ( $Crapola < .8 ) { $VOLColor='Red'; }
 if ( $Crapola >= .9 ) { $VOLColor='White'; }
 if ( $Crapola >= 1.1 ) { $VOLColor='LightGreen'; }
@@ -287,94 +299,138 @@ $candle="";
 
 #  DEMARK Analysis happens Here
 ###########################################################################################
-$TD="";
+#Initialize working Variables
+my $BullFlip=0;         #Signal for downward trend reversal
+my $BearFlip=0;         #Signal for Upward   trend reversal
+my $Countdown=0;        #Length of signalling trend is nine
+my $Reference=0;        #?????????????
+my $Support=0;
+$TD="";     		#Signal Text 
 #print " L=$i  $lines[$i]<br>";
 if (( $BearFlip ) || ( $BullFlip )) 
-  {
-    if (( $BearFlip ) && ( $Close < $Reference ))  
-	{
-	  $Countdown=$Countdown+1;
-	  $TD = "TD-Buy $Countdown  $Close  $Reference";
-          if ( $Countdown == 9 ) 
-	     {
-		  #$TD = "TD-BuySignal $Countdown  $Close  $Reference";
-                my($x1,$x2,$x3,$x4,$LOW6,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-3]);
-                my($x1,$x2,$x3,$x4,$LOW7,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-2]);
-                my($x1,$x2,$x3,$x4,$LOW8,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-1]);
-                my($x1,$x2,$x3,$x4,$LOW9,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i]);
-                if ($LOW6 < $LOW7) {$LOW1=$LOW6;}else{$LOW1=$LOW7;} 
-                if ($LOW8 < $LOW9) {$LOW2=$LOW8;}else{$LOW2=$LOW9;}
-                if ( $LOW1 >  $LOW2 )
-                   { $TD = "TD-BuyPERF* $Countdown $Reference $LOW1";
-                     $MSG= "$x1 $ticker Strong_Buy $Close $Reference $LOW1" ;
-                     `echo "$MSG" >> /var/www/batch/alerts/alerts.txt`;
-                   }else{
-                     $TD = "TD-BuySignal* $Countdown $Reference $LOW1";
-                     $MSG= "$x1 $ticker Buy $Close $Reference $LOW1" ;
-                     #`echo "$MSG" >> /var/www/batch/alerts/alerts.txt`;
-                   }
-
-		  $Countdown=0;
-                  $BullFlip=0; $BearFlip=0;
-		  $Reference=0;
-             } 
-	}else{
-		if  (( $BullFlip  ) && ( $Close > $Reference ))
-		{
-	$TD ="Trace $Countdown  $Close  $Reference $BullFlip $BearFlip ";
+	{ #1  **Either a BUY or Sell setup is in progress
+	  if (( $BearFlip ) && ( $Close < $Reference ))  
+		{ #2
+		  #Process a close in a Bear Signal Sequence ################
 		  $Countdown=$Countdown+1;
-		  $TD = "TD-Sell $Countdown  $Close  $Reference";
-          	if ( $Countdown == 9 )
-               	 { 
-                my($x1,$x2,$x3,$x4,$LOW6,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-3]);
-                my($x1,$x2,$x3,$x4,$LOW7,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-2]);
-                my($x1,$x2,$x3,$x4,$LOW8,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-1]);
-                my($x1,$x2,$x3,$x4,$LOW9,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i]);
-                if ($LOW6 > $LOW7) {$LOW1=$LOW6;}else{$LOW1=$LOW7;}
-                if ($LOW8 > $LOW9) {$LOW2=$LOW8;}else{$LOW2=$LOW9;}
-                if ( $LOW1 <  $LOW2 )
-                   { $TD = "TD-SellPERF* $Countdown $Reference $LOW1";
-                    #$MSG= "$x1 $ticker Strong_Sell $Close $Reference $LOW1" ;
-                     $MSG= "$x1 $ticker Strong_Sell $Close $LOW1 $Reference" ;
-                    `echo "$MSG" >> /var/www/batch/alerts/alerts.txt`;
-                   }else{
-                     $TD = "TD-SELLSignal $Countdown  $LOW1 $Reference";
-                     $MSG= "$x1 $ticker Sell C=$Close $Reference $LOW1" ;
-                    #`echo "$MSG" >> /var/www/batch/alerts/alerts.txt`;
-                   }
-               	   $Countdown=0;
-               	   $BullFlip=0; $BearFlip=0;
-               	   $Reference=0;
-               	 }
+		  $TD = "TD-Buy $Countdown  $Close  $Reference";
+		  if ( $Countdown == 9 ) 
+			{ #3
+                	  #Test final close in Bearflip countown if OK issue a BUY
+			  # 9 consecutive closes “lower” than the close 4 bars prior records a “BUY setup”
+			  #$TD = "TD-BuySignal $Countdown  $Close  $Reference";
+              	  	  my($x1,$x2,$x3,$x4,$LOW6,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-3]);
+                	  my($x1,$x2,$x3,$x4,$LOW7,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-2]);
+                	  my($x1,$x2,$x3,$x4,$LOW8,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-1]);
+                	  my($x1,$x2,$x3,$x4,$LOW9,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i]);
+                	  if ($LOW6 < $LOW7) {$LOW1=$LOW6;}else{$LOW1=$LOW7;} 
+                	  if ($LOW8 < $LOW9) {$LOW2=$LOW8;}else{$LOW2=$LOW9;}
+                	  if ( $LOW1 >  $LOW2 )
+                   		{ #4
+				  #Perfect Buy Signal########################
+				  # a “buy setup” is “perfected” when the low of bars 6 and 7
+				  # in the count are exceeded by the low of bars 8 or 
+				  $TD = "TD-BuyPERF* $Countdown $Reference $LOW1";
+                     		  $MSG= "$x1 $ticker Strong_Buy $Close $Reference $LOW1" ;
+                     		  `echo "$MSG" >> /var/www/batch/alerts/alerts.txt`;
+                   		} #4
+                	  else
+                   		{ #4
+				  #Weak Buy Signal########################
+                     		  $TD = "TD-BuySignal* $Countdown $Reference $LOW1";
+                     		  $MSG= "$x1 $ticker Buy $Close $Reference $LOW1" ;
+                     		  #`echo "$MSG" >> /var/www/batch/alerts/alerts.txt`;
+                   		} #4
+			  #Reset Indicators
+		  	  $Countdown=0;
+                  	  $BullFlip=0; 
+		  	  $BearFlip=0;
+		  	  $Reference=0;
+              		} #3
+		} #2
+ 	else
+		{  #2   ****No Bearflip continuation - Check for Bullflip continuation############
+	  	if (( $BullFlip  ) && ( $Close > $Reference ))
+			{ #3
+                  	  #Process a close in a Bull Signal Sequence ################
+			  # 9 consecutive closes “higher” than the close 4 bars prior constitutes a “sell setup”
+		  	  $Countdown=$Countdown+1;
+		  	  $TD = "TD-Sell $Countdown  $Close  $Reference $BullFlip $BearFlip ";                    
+              	  	  if ( $Countdown == 9 )
+				{ #4
+			  	  ##Test final close in Bullflip countown if OK issue a SELL
+			 	  my($x1,$x2,$x3,$x4,$LOW6,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-3]);
+			  	  my($x1,$x2,$x3,$x4,$LOW7,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-2]);
+			  	  my($x1,$x2,$x3,$x4,$LOW8,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-1]);
+			  	  my($x1,$x2,$x3,$x4,$LOW9,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i]);
+                      	  	  if ($LOW6 > $LOW7) {$LOW1=$LOW6;}else{$LOW1=$LOW7;}
+			  	  if ($LOW8 > $LOW9) {$LOW2=$LOW8;}else{$LOW2=$LOW9;}
+			  	  if ( $LOW1 <  $LOW2 )
+					{ #5
+				  	  #Perfect Sell Signal########################
+				  	  #A “sell setup” is “perfected” when the the high of bars 6 and 7
+				  	  # in the count are exceeded by the high of bars 8 or 9
+				  	  $TD = "TD-SellPERF* $Countdown $Reference $LOW1";
+				   	  $MSG= "$x1 $ticker Strong_Sell $Close $LOW1 $Reference" ;
+				  	  `echo "$MSG" >> /var/www/batch/alerts/alerts.txt`;
+					} #5
+			  	  else
+					{ #5
+				  	  #Weak Sell Signal########################
+				  	  $TD = "TD-SELLSignal $Countdown  $LOW1 $Reference";
+ 				 	  $MSG= "$x1 $ticker Sell C=$Close $Reference $LOW1" ;
+				  	  #`echo "$MSG" >> /var/www/batch/alerts/alerts.txt`;
+					}
+			  	  #Reset Indicators
+		  	  	  $Countdown=0;
+                  		  $BullFlip=0; 
+		  	 	  $BearFlip=0;
+		  	 	  $Reference=0;
+				} #4
+        		} #3
+	  	else
+			{ #3
+                  	  #Process a BUST in Bull or Bear Signal Sequence ################
+		  	  $Countdown=0;
+		  	  $BullFlip=0; $BearFlip=0;
+		  	  $TD = "BUST $Close $Reference";
+		  	  $Reference=0;
+			} #3
 
-		}else{
-		  $Countdown=0;
-		  $BullFlip=0; $BearFlip=0;
-		  $TD = "BUST $Close $Reference";
-		  $Reference=0;
-		}
-	}
- }else{  # TD Sequential Setup in progress
-	my($x1,$x2,$x3,$x4,$C4,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-1]);
-	my($x1,$x2,$x3,$x4,$C1,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-3]);
-	if (($i>3) && ($C4 > $C1) && ( $Close < $C1 )) 
-  	  { $TD = "BearFlip $Close $C1"; $BearFlip=1; $Reference=$C4;
-	     $Resistance=$C1;
-	     $Support=$C1;
-             $Countdown=$Countdown+1;
-	  }
-	if (($i>3) && ($C4 < $C1) && ( $Close > $C1 )) 
-	  { $TD = "BullFlip $Close $C1"; $BullFlip=1; $Reference=$C4;
-	     $Resistance=$C1;
-	     $Support=$C1;
-	    $Countdown=$Countdown+1;
-       	  }
-	}
+		} #2
+ 	} #1
+ else 
+	{ #1 
+           # TD Detect Start of Sequential Setup  #######################################
+	   my($x1,$x2,$x3,$x4,$C4,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-1]);
+	   my($x1,$x2,$x3,$x4,$C1,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-3]);
+	   if (($i>3) && ($C4 > $C1) && ( $Close < $C1 )) 
+		{ #2  Indicate Bearflip Sell Setup In Progres
+                  $TD = "BearFlip $Close $C1"; 
+		  $BearFlip=1;    #BEARFLIP DETECTED##################Close is LOWER than last 4 closes
+		  $Reference=$C4; #Value of start of sequence
+	       	  $Resistance=$C1;#Value that would break the sequence
+	       	  $Support=$C1;   #Value that would break the sequence
+               	  $Countdown=$Countdown+1;
+	    	}  #2
+	   if (($i>3) && ($C4 < $C1) && ( $Close > $C1 )) 
+	   	{  #2 Indicate Bullflip Sell Setup In Progress 
+		  $TD = "BullFlip $Close $C1"; 
+               	  $BullFlip=1;    #BULLFLIP DETECTED##################Close is Greater than last 4 closes
+              	  $Reference=$C4; #Value of start of sequence
+	      	  $Resistance=$C1;#Value that would break the sequence
+	     	   $Support=$C1;   #Value that would break the sequence
+	      $Countdown=$Countdown+1;
+       	    	} #2
+       } #1
+
+
 $Change_Since_Close=$Open-$PClose;
 $Change_Since_Open=$Close-$Open;
 
 # Output:Print Detail Table Line for the day 
 #############################################################################
+# Long field specs is split for visibility in editing
 $format = "<tr align=right>";
 $format = "$format"."<td title='Date'>%15s</td>";
 $format = "$format"."<td title='Open - Change since Close:$Change_Since_Close' bgcolor='$OpenColor'>%01.2f</td>";
@@ -415,9 +471,11 @@ for ($i=$limit; $i > 0; $i--)
 print "$line\n";
 }
 
-my $time1 = time();
+#my $time1 = time();
+my $time1 = `date +%s%N`; # Returns ssssssssss.uuuuuu in scalar context
 print "</table><sp>\n";
-print "$time1  - useage: ", $time1-$time2, "seconds\n";
+$useage=($time1-$time2)/1000000;
+print "End  :$time1\nStart:$time2 \nresponse time:  $useage  milliseconds\n";
 
 print "</body></html>\n";
 ############################## E N D  M A I N  ############################
