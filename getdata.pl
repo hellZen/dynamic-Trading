@@ -9,7 +9,14 @@ print header;   # Tell perl to send a html header.
      		# So your browser gets the output
      		# rather then <stdout>(command line
      		# on the server.)
-# Initialize some Variables for later
+
+# Initialize some Variables for later#################################################
+######################################################################################
+my $BullFlip=0;         #Signal for downward trend reversal
+my $BearFlip=0;         #Signal for Upward   trend reversal
+my $Countdown=0;        #Length of signalling trend is nine
+my $Reference=0;        #?????????????
+my $Support=0;
 #my $time2 = time();	#load the start time for execution usage timing
 my $time2 = `date +%s%N`; # Returns ssssssssss.uuuuuu in scalar context
 
@@ -17,20 +24,24 @@ $m=`date '+%m-%d-%Y'| cut -d - -f1`;    #Run-date -mm
 $d=`date '+%m-%d-%Y'| cut -d - -f2`;    #Run-date -dd
 $y=`date '+%m-%d-%Y'| cut -d - -f3`;    #Run-date -yyyy
 $ly=$y-2;                               #current year minus two  - Check this 
+#####################################################################################
 
 &getparms;	# load the parameters supplied on the URL 
 		# These are in the form pp=<value>
 		# Valid values are ID - ticker symbol defauld = "AKAM"
+###################################################################################
+
+
 &print_table_headings; 	# Print out table tags &  header lines with links etc
+##################################################################################
 
 &gethistorydata;
 #Strip any datalines that dont contain numbers
 #  this is a really dumb way to strip the header
 #  cleverness in programming can be an expensive conceit
 `cat dat.txt | grep [0-9] > dat2.txt`;
-`awk -F "," '{print $1\",\"$2\",\"$3\",\"$4\",\"$5\",\"$6\",\"$7}' dat2.txt > dat4.txt`;
-
-
+#`awk -F "," '{print $1\",\"$2\",\"$3\",\"$4\",\"$5\",\"$6\",\"$7}' dat2.txt > dat4.txt`;
+#OPEN files handles for perl access
 open(HISTORY, '<dat.txt');
 open(H2, '<dat2.txt');
 open(H3, '>dat3.txt');
@@ -45,142 +56,230 @@ $hdr = "Date,Open,High,Low,Close,Volume,Adj Close";
 my(@lines) = <H2>;     #Read file into ARRAY (list of lines) for stats and printing
 @lines = sort(@lines); # reverse Order as oldest first for calculations
 my $limit = @lines;    # extract number of entries
+print  "<br>$limit days of data  - $wget_length - bytes  Returned from provider";
 
-
-#############################################################################
-#############################################################################
-#############################################################################
-# Print Summary stats....
-my($AccVol)=0; 
-my($AccClose)=0; 
-my($AccRange)=0; 
-my($AccLC)=0; 
-my($N)=260;  # 5 days times 52 weeks for calulating the year's summary stat line values
-
-
-$switch=1; 
-#($N,$AccVol)=&SummaryLine(100);
-for ($i=$limit-1; $i>=0; $i--)
- {
-    $line = $lines[$i]; # pull current values from array
-    chomp($line); # Good practice to always strip the trailing newline.
-    # separate all the data items into vars for calc and formatting
-    #Alphavantage Data Field Format
-    #timestamp,open,high,low,close,adjusted_close,volume,dividend_amount,split_coefficient
-    ($xDate,$xOpen,$xHigh,$xLow,$xClose,$xAdjClose,$xVol,$xdividend,$xsplit_coefficient) = split(/,/, $line);
-
-    #print "<br>L=$line";  #DEBUG
-
-   if ( $switch == 0 )  
-       { 
-          if ( ($xLow)  < ($xMin)) { $xMin = $xLow };
-          if ( ($xHigh) > ($xMax)) { $xMax = $xHigh };
-       }else{
-          #initialize min,max, last close on first iteration
-          $xMin = $xLow; 
-          $xMax = $xHigh; 
-          $Last = $xClose;  
-          $switch=0;   #Turn this code off for rest of loop
-       }
-
-     #print "<br>Lines $limit - N $i - Low $xLow Min $xMin High $xMAx Max $xHigh -- $line\n";    #DEBUG
-
-  }
-
-$range=$xMax - $xMin;  
-$cur=$Last - $xLow; 
-$pct=$cur/$range; $pct=$pct*100;
-
-#OUTPUT:  Summary  line - Closing price Range (min,max) and current position wrt range
-###########################################################################################
-$format=("<br>52-Week Range=\$%01.2f - Min \$%01.2f Max \$%01.2f  <br>Last Close \$%01.2f - Pos in range - %01.2f% <sp>");
-$LINEOUT=sprintf($format, $range, $xMin, $xMax, $Last, $pct);
-print $LINEOUT;
-
-#OUTPUT: Print header for 50-100-200 day price and volume table
-###########################################################################################
-print "<table border=1>";
-print "<tr><td>Days</td><td>AvgClose</td><td>AvgVolume</td><td>Range</td><td>Avg L to C</td></tr>";
 
 
 
 # Print 50 Day Summary stats....
 ##########################################################################################
-my($AccVol)=0; my($AccClose)=0; my($AccRange)=0; my($AccLC)=0; 
-my($N)=50;   #Figure 50 Day stats
 
-for ($i=$limit; $i>=$limit-$N; $i--)
+
+my($N)=50;    #Figure 50 Day stats
+$switch=1;    #First Iteration indicator
+
+for ($i=$limit-1; $i>=$limit-$N; $i--)
  {
  	$line = $lines[$i]; # pull current values from array
 	 chomp($line); # Good practice to always strip the trailing newline.
 	# separate all the data items into vars for calc and formatting
 	# my($xDate,$xOpen,$xHigh,$xLow,$xClose,$xVol,$xCrapola) = split(/,/, $line);
 	($xDate,$xOpen,$xHigh,$xLow,$xClose,$xAdjClose,$xVol,$xdividend,$xsplit_coefficient) = split(/,/, $line);
-	$AccVol=$xVol+$AccVol;  # accumulate Volume for 100 SMA
-	$AccClose=$xClose+$AccClose;  # accumulate Close price for 50 SMA
-	$AccRange=$AccRange+($xHigh-$xLow);
-	$AccLC=$AccLC+($xClose-$xLow);
-	#print "$line<br>";     #DEBUG
+
+	   if ( $switch == 0 )  
+	   	{ 
+		  #print "<br>$switch $i $line  *";     #DEBUG
+          	  if ( ($xLow)  < ($xMin)) { $xMin = $xLow };  #Note $xLOW is INTRADAY LOW
+		  if ( ($xHigh) > ($xMax)) { $xMax = $xHigh };  #Note $xHigh is INTRADAY High
+		  $AccVol=$xVol+$AccVol;        # accumulate Volume for  SMA
+		  $AccClose=$xClose+$AccClose;  # accumulate Close price for  SMA
+		  $AccRange=$AccRange+($xHigh-$xLow);
+		  $AccLC=$AccLC+($xClose-$xLow);
+
+		}
+   	  else
+		{
+		  #print "<br>$switch $i $line";     #DEBUG
+		  #initialize min,max, last close on first iteration
+		  $xMin = $xLow; 
+		  $xMax = $xHigh; 
+		  $Last = $xClose;  
+		  my($AccVol)=0; my($AccClose)=0; my($AccRange)=0; my($AccLC)=0; 
+		  $switch=0;   #Turn this code off for rest of loop
+			
+		}
+
  }
 $AccVol=$AccVol/$N; 
 $AccClose=$AccClose/$N; 
 $AccRange=$AccRange/$N; 
 $AccLC=$AccLC/$N;
+$range=$xMax - $xMin;
+$cur=$Last - $xMin; 
+$pct=$Last/$xMax; $pct=$pct*100;
 
-$format=("<tr><td>%01.0f</td><td>%01.2f</td><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td></tr>");
-$LINEOUT=sprintf($format, $N, $AccClose,$AccVol,$AccRange,$AccLC);
-print $LINEOUT;
+$format=("<tr><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td><td>%01.2f</td><td>%01.2f</td><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td></tr>");
+$LINEOUT1=sprintf($format, $N, $AccClose,$pct,$xMin,$xMax,$AccVol,$AccRange,$AccLC);
+
 
 
 # Print 100 Day Summary stats....
 ##########################################################################################
-my($AccVol)=0; my($AccClose)=0; my($AccRange)=0; my($AccLC)=0; 
-my($N)=100;
-
-for ($i=$limit; $i>=$limit-$N; $i--)
+my($N)=100;   #Figure 50 Day stats
+$switch=1;    #First Iteration indicator
+for ($i=$limit-1; $i>=$limit-$N; $i--)
  {
-	$line = $lines[$i]; # pull current values from array
+ 	$line = $lines[$i]; # pull current values from array
 	 chomp($line); # Good practice to always strip the trailing newline.
 	# separate all the data items into vars for calc and formatting
+	# my($xDate,$xOpen,$xHigh,$xLow,$xClose,$xVol,$xCrapola) = split(/,/, $line);
 	($xDate,$xOpen,$xHigh,$xLow,$xClose,$xAdjClose,$xVol,$xdividend,$xsplit_coefficient) = split(/,/, $line);
-	$AccVol=$xVol+$AccVol;  # accumulate Volume for 100 SMA
-	$AccClose=$xClose+$AccClose;  # accumulate Close price for 100 SMA
-	$AccRange=$AccRange+($xHigh-$xLow);
-	$AccLC=$AccLC+($xClose-$xLow);
-	#print "$line<br>";
- }
-$AccVol=$AccVol/$N; $AccClose=$AccClose/$N;
-$AccRange=$AccRange/$N; $AccLC=$AccLC/$N;
-$format=("<tr><td>%01.0f</td><td>%01.2f</td><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td></tr>");
-$LINEOUT=sprintf($format, $N, $AccClose,$AccVol,$AccRange,$AccLC);
-print $LINEOUT;
 
-if ($N > 200 ) {
+	   if ( $switch == 0 )  
+	   	{ 
+		  #print "<br>$switch $i $line  *";     #DEBUG
+          	  if ( ($xLow)  < ($xMin)) { $xMin = $xLow };  #Note $xLOW is INTRADAY LOW
+		  if ( ($xHigh) > ($xMax)) { $xMax = $xHigh };  #Note $xHigh is INTRADAY High
+		  $AccVol=$xVol+$AccVol;        # accumulate Volume for  SMA
+		  $AccClose=$xClose+$AccClose;  # accumulate Close price for  SMA
+		  $AccRange=$AccRange+($xHigh-$xLow);
+		  $AccLC=$AccLC+($xClose-$xLow);
+
+		}
+   	  else
+		{
+		  #print "<br>$switch $i $line";     #DEBUG
+		  #initialize min,max, last close on first iteration
+		  $xMin = $xLow; 
+		  $xMax = $xHigh; 
+		  $Last = $xClose;  
+		  my($AccVol)=0; my($AccClose)=0; my($AccRange)=0; my($AccLC)=0; 
+		  $switch=0;   #Turn this code off for rest of loop
+			
+		}
+
+ }
+$AccClose=$AccClose/$N; 
+$AccRange=$AccRange/$N; 
+$AccLC=$AccLC/$N;
+$range=$xMax - $xMin;
+$cur=$Last - $xMin; 
+$pct=$Last/$xMax; $pct=$pct*100;
+
+$format=("<tr><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td><td>%01.2f</td><td>%01.2f</td><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td></tr>");
+$LINEOUT2=sprintf($format, $N, $AccClose,$pct,$xMin,$xMax,$AccVol,$AccRange,$AccLC);
+
+my $limit = @lines;    # extract number of entries
+if ($limit > 200 ) {
 # Print 200 Day Summary stats....
 ##########################################################################################
-my($AccVol)=0; my($AccClose)=0; my($AccRange)=0; my($AccLC)=0; my($N)=200;
-#($N,$AccVol)=&SummaryLine(100);
-for ($i=$limit; $i>=$limit-$N; $i--)
+my($N)=200;   #Figure 200 Day stats
+$switch=1;    #First Iteration indicator
+for ($i=$limit-1; $i>=$limit-$N; $i--)
  {
- $line = $lines[$i]; # pull current values from array
- chomp($line); # Good practice to always strip the trailing newline.
-# separate all the data items into vars for calc and formatting
-# my($xDate,$xOpen,$xHigh,$xLow,$xClose,$xVol,$xCrapola) = split(/,/, $line);
-my($xDate,$xOpen,$xHigh,$xLow,$xClose,$xAdjClose,$xVol,$xdividend,$xsplit_coefficient)  = split(/,/, $line);
-$AccVol=$xVol+$AccVol;  # accumulate Volume for 100 SMA
-$AccClose=$xClose+$AccClose;  # accumulate Close price for 100 SMA
-$AccRange=$AccRange+($xHigh-$xLow);
-$AccLC=$AccLC+($xClose-$xLow);
-#print "$line<br>";
-}
-$AccVol=$AccVol/$N; $AccClose=$AccClose/$N;
-$AccRange=$AccRange/$N; $AccLC=$AccLC/$N;
-$format=("<tr><td>%01.0f</td><td>%01.2f</td><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td></tr>");
-$LINEOUT=sprintf($format, $N, $AccClose,$AccVol,$AccRange,$AccLC);
-print $LINEOUT;
+ 	$line = $lines[$i]; # pull current values from array
+	 chomp($line); # Good practice to always strip the trailing newline.
+	# separate all the data items into vars for calc and formatting
+	# my($xDate,$xOpen,$xHigh,$xLow,$xClose,$xVol,$xCrapola) = split(/,/, $line);
+	($xDate,$xOpen,$xHigh,$xLow,$xClose,$xAdjClose,$xVol,$xdividend,$xsplit_coefficient) = split(/,/, $line);
+
+	   if ( $switch == 0 )  
+	   	{ 
+		  #print "<br>$switch $i $line  *";     #DEBUG
+           	  if ( ($xLow)  < ($xMin)) { $xMin = $xLow };  #Note $xLOW is INTRADAY LOW
+		  if ( ($xHigh) > ($xMax)) { $xMax = $xHigh };  #Note $xHigh is INTRADAY High
+		  $AccVol=$xVol+$AccVol;        # accumulate Volume for  SMA
+		  $AccClose=$xClose+$AccClose;  # accumulate Close price for  SMA
+		  $AccRange=$AccRange+($xHigh-$xLow);
+		  $AccLC=$AccLC+($xClose-$xLow);
+
+		}
+   	  else
+		{
+		  #print "<br>$switch $i $line";     #DEBUG
+		  #initialize min,max, last close on first iteration
+		  $xMin = $xLow; 
+		  $xMax = $xHigh; 
+		  $Last = $xClose;  
+		  my($AccVol)=0; my($AccClose)=0; my($AccRange)=0; my($AccLC)=0; 
+		  $switch=0;   #Turn this code off for rest of loop
+			
+		}
+
+ }
+$AccClose=$AccClose/$N; 
+$AccRange=$AccRange/$N; 
+$AccLC=$AccLC/$N;
+$range=$xMax - $xMin;
+$cur=$Last - $xMin; 
+$pct=$Last/$xMax; $pct=$pct*100;
+
+$format=("<tr><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td><td>%01.2f</td><td>%01.2f</td><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td></tr>");
+$LINEOUT3=sprintf($format, $N, $AccClose,$pct,$xMin,$xMax,$AccVol,$AccRange,$AccLC);
+
 }  # End of 200 day If
 
+my $limit = @lines;    # extract number of entries
+if ($limit > 260 ) {
+# Print 200 Day Summary stats....
+##########################################################################################
+my($N)=260;   #Figure 260 Day stats
+$switch=1;    #First Iteration indicator
+for ($i=$limit-1; $i>=$limit-$N; $i--)
+ {
+ 	$line = $lines[$i]; # pull current values from array
+	 chomp($line); # Good practice to always strip the trailing newline.
+	# separate all the data items into vars for calc and formatting
+	# my($xDate,$xOpen,$xHigh,$xLow,$xClose,$xVol,$xCrapola) = split(/,/, $line);
+	($xDate,$xOpen,$xHigh,$xLow,$xClose,$xAdjClose,$xVol,$xdividend,$xsplit_coefficient) = split(/,/, $line);
 
+	   if ( $switch == 0 )  
+	   	{ 
+		  #print "<br>$switch $i $line  *";     #DEBUG
+           	  if ( ($xLow)  < ($xMin)) { $xMin = $xLow };  #Note $xLOW is INTRADAY LOW
+		  if ( ($xHigh) > ($xMax)) { $xMax = $xHigh };  #Note $xHigh is INTRADAY High
+		  $AccVol=$xVol+$AccVol;        # accumulate Volume for  SMA
+		  $AccClose=$xClose+$AccClose;  # accumulate Close price for  SMA
+		  $AccRange=$AccRange+($xHigh-$xLow);
+		  $AccLC=$AccLC+($xClose-$xLow);
+
+		}
+   	  else
+		{
+		  #print "<br>$switch $i $line";     #DEBUG
+		  #initialize min,max, last close on first iteration
+		  $xMin = $xLow; 
+		  $xMax = $xHigh; 
+		  $Last = $xClose;  
+		  my($AccVol)=0; my($AccClose)=0; my($AccRange)=0; my($AccLC)=0; 
+		  $switch=0;   #Turn this code off for rest of loop
+			
+		}
+
+ }
+$AccClose=$AccClose/$N; 
+$AccRange=$AccRange/$N; 
+$AccLC=$AccLC/$N;
+$range=$xMax - $xMin;
+$cur=$Last - $xMin; 
+$pct=$Last/$xMax; $pct=$pct*100;
+
+$format=("<tr><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td><td>%01.2f</td><td>%01.2f</td><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td></tr>");
+$LINEOUT4=sprintf($format, $N, $AccClose,$pct,$xMin,$xMax,$AccVol,$AccRange,$AccLC);
+
+}  # End of 260 day If
+
+
+#OUTPUT: Print header for 50-100-200 day price and volume table
+###########################################################################################
+print "<table border=1>";
+print "<tr>
+  <td>Days</td>
+  <td>AvgClose</td>
+<td>\% of Range</td>
+<td>xMin</td>
+<td>xMax</td>
+  <td>AvgVolume</td>
+  <td>Avg Day Range</td>
+  <td>Avg L to C</td></tr>";
+print $LINEOUT1;
+print $LINEOUT2;
+if ($limit > 200 )  {
+		print $LINEOUT3;  
+		}
+if ($limit > 260 )  {
+		print $LINEOUT4;  
+		}
 #Close the Summary Stats Table
 print "</table>";
 
@@ -207,8 +306,15 @@ $HDR  = "<tr><td>Date</td>
 	</tr>";
 print "$HDR<br>\n";
 
-
-#    Print detail data table
+###############################################################################################
+# BIG Loop Starts here  Printing out one row per data line
+#    Note that since the data has to be scanned oldest first,
+#     the table code has to be stacked then printed in reverse order.
+#     THIS IS ONLY DONE BEACAUSE I DECIDED THE RECENT SIGNAL
+#     SHOULD BE AT THE TOP OF THE TABLE RATHER THAN THE BOTTOM
+#      this seemed like a good idea becauwe I was pulling all avalable data 
+#      and it seemed like a bad Idea to go thru 10 years of data to see your signal at the end.
+######################################################################################********
 for ($i=0; $i < $limit; $i++)
  	{
 	  # Good practice to store $_ value because # subsequent operations may change it.
@@ -295,14 +401,9 @@ $candle="";
         if (($Open > $Close  ) && ( (($Close - $Low)/($Open - $Close)) > 2 ))
                       { $candle =  "Hangman";}
 
-#  DEMARK Analysis happens Here
-###########################################################################################
-#Initialize working Variables
-my $BullFlip=0;         #Signal for downward trend reversal
-my $BearFlip=0;         #Signal for Upward   trend reversal
-my $Countdown=0;        #Length of signalling trend is nine
-my $Reference=0;        #?????????????
-my $Support=0;
+#  DEMARK Analysis happens Here  ################################################################
+#################################################################################################
+
 $TD="";     		#Signal Text 
 #print " L=$i  $lines[$i]<br>";
 if (( $BearFlip ) || ( $BullFlip )) 
@@ -417,8 +518,8 @@ if (( $BearFlip ) || ( $BullFlip ))
                	  $BullFlip=1;    #BULLFLIP DETECTED##################Close is Greater than last 4 closes
               	  $Reference=$C4; #Value of start of sequence
 	      	  $Resistance=$C1;#Value that would break the sequence
-	     	   $Support=$C1;   #Value that would break the sequence
-	      $Countdown=$Countdown+1;
+	     	  $Support=$C1;   #Value that would break the sequence
+	          $Countdown=$Countdown+1;
        	    	} #2
        } #1
 
@@ -598,6 +699,7 @@ $URL='https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symb
 #-2-Insert remainder of URL
 $URL="$URL"."$ticker";
 $URL="$URL".'&outputsize=compact';
+#$URL="$URL".'&outputsize=full';
 $URL="$URL".'&apikey=';
 $API_Key=`cat /usr/lib/cgi-bin/API_Alphavantage.txt`;
 $URL="$URL"."$API_Key";
@@ -614,10 +716,11 @@ print 'Raw Data = <a href='."$URL".'>' . "$URL" . '</a>';
 
 #VERIFY we actually got a decent data transfer
 $wget_length=`ls -l dat.txt | cut -d ' ' -f5`;
-print  "<br>$wget_length - bytes  Returned from provider";
+#print  "<br>print  "<br>$wget_length - bytes  Returned from provider";
+
 if ($wget_length < 100)      {
      
-     print  "<br><br>*******ERROR Insufficient data - Run Cannot Continue - <br>WGET RUN LOG returned..............<br>";
+     print  "<br><br>*******ERROR $wget_length - bytes Insufficient data - Run Cannot Continue - <br>WGET RUN LOG returned..............<br>";
      open(my $txtfile,  "<",  "log.txt")  or die "Can't open log.txt: $!";
      while (<$txtfile>) {     # assigns each line in turn to $_
                           print "$_<br>";
