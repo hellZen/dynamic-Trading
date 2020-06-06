@@ -3,7 +3,7 @@ CGI Code from test server
 
 ****DeMark Sequential indicator   (investopedia) 
 This is my rendition of the code based on study of the book.
-One noteable Item that may be missing is the establish ment of a trend proir to the sequence testing
+One noteable Item that may be missing is the establishment of a trend prior to the sequence testing
 
   https://www.investopedia.com/terms/d/demarkerindicator.asp
 The DeMarker indicator, also known as DeM, is a technical analysis tool that compares the most recent maximum and minimum prices to the previous period's equivalent price to measure the demand of the underlying asset. From this comparison, it aims to assess the directional bias of the market. It is a member of the oscillator family of technical indicators and based on principles promoted by technical analyst Thomas DeMark.
