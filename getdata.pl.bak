@@ -645,9 +645,6 @@ sub print_table_headings {
 #h1("History Study for $ticker");
 print "<head><title> Demark Study -  $ticker</title></head><body>\n";
 print "<h1>History Study for $ticker</h1>\n";
-#DOW for Reference
-print "<a target='new' href=https://finviz.com/futures_charts.ashx?t=YM&p=h1 >DOW on Finviz</a><br>";
-
 print "<a target='new' href=http://www.reuters.com/finance/stocks/companyProfile?symbol=$ticker >$ticker Company Profile (Reuters)</a><br>";
 #--------- Print URL for raw data
 $URL='http://finviz.com/quote.ashx?t=' . $ticker . '&ty=c&ta=1&p=d&b=1';
