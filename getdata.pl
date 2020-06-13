@@ -111,7 +111,8 @@ $format=("<tr><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td><td>%01.2f</td><td>%0
 $LINEOUT1=sprintf($format, $N, $AccClose,$pct,$xMin,$xMax,$AccVol,$AccRange,$AccLC);
 
 
-
+my $limit = @lines;    # extract number of entries
+if ($limit > 100 ) {
 # Print 100 Day Summary stats....
 ##########################################################################################
 my($N)=100;   #Figure 50 Day stats
@@ -148,6 +149,7 @@ for ($i=$limit-1; $i>=$limit-$N; $i--)
 		}
 
  }
+$AccVol=$AccVol/$N;
 $AccClose=$AccClose/$N; 
 $AccRange=$AccRange/$N; 
 $AccLC=$AccLC/$N;
@@ -157,6 +159,9 @@ $pct=$Last/$xMax; $pct=$pct*100;
 
 $format=("<tr><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td><td>%01.2f</td><td>%01.2f</td><td>%01.0f</td><td>%01.2f</td><td>%01.2f</td></tr>");
 $LINEOUT2=sprintf($format, $N, $AccClose,$pct,$xMin,$xMax,$AccVol,$AccRange,$AccLC);
+
+}  # End of 100 day If
+
 
 my $limit = @lines;    # extract number of entries
 if ($limit > 200 ) {
@@ -577,7 +582,18 @@ print "End  :$time1\nStart:$time2 \nresponse time:  $useage  milliseconds\n";
 
 print "</body></html>\n";
 ############################## E N D  M A I N  ############################
+
+
+
+################################################################################
+#       S  U  B  R  O  U  T  I  N  E  S
+################################################################################
+
+
 sub SummaryLine {
+	#--------------------------------------------------------------------------------
+	# Put out general stat table for 50 100 220 day averages
+    #---------------------------------------------------------------------------
 $XX=$_[0];
 for ($i=$limit; $i>=$limit-100; $i--)
  {
@@ -599,9 +615,7 @@ return($XX, $XAccVol);
 }
 }
 
-################################################################################
-#       S  U  B  R  O  U  T  I  N  E  S
-################################################################################
+
 
 
 sub getparms {
