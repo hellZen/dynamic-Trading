@@ -1,9 +1,7 @@
 #!/usr/bin/perl
 use CGI qw(:standard);
 
-
-#!!!went up to /usr and set permissions to create/delete
-# and applied downward for remote edit
+#Perform demakr analysis 
 
 print header;   # Tell perl to send a html header.
      		# So your browser gets the output
@@ -416,7 +414,7 @@ if (( $BearFlip ) || ( $BullFlip ))
 		  if ( $Countdown == 9 ) 
 			{ #3
                 	  #Test final close in Bearflip countown if OK issue a BUY
-			  # 9 consecutive closes “lower” than the close 4 bars prior records a “BUY setup”
+			  # 9 consecutive closes ï¿½lowerï¿½ than the close 4 bars prior records a ï¿½BUY setupï¿½
 			  #$TD = "TD-BuySignal $Countdown  $Close  $Reference";
               	  	  my($x1,$x2,$x3,$x4,$LOW6,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-3]);
                 	  my($x1,$x2,$x3,$x4,$LOW7,$x5,$x6,$x7,$x8) = split(/,/, $lines[$i-2]);
@@ -427,7 +425,7 @@ if (( $BearFlip ) || ( $BullFlip ))
                 	  if ( $LOW1 >  $LOW2 )
                    		{ #4
 				  #Perfect Buy Signal########################
-				  # a “buy setup” is “perfected” when the low of bars 6 and 7
+				  # a ï¿½buy setupï¿½ is ï¿½perfectedï¿½ when the low of bars 6 and 7
 				  # in the count are exceeded by the low of bars 8 or 
 				  $TD = "TD-BuyPERF* $Countdown $Reference $LOW1";
                      		  $MSG= "$x1 $ticker Strong_Buy $Close $Reference $LOW1" ;
@@ -452,7 +450,7 @@ if (( $BearFlip ) || ( $BullFlip ))
 	  	if (( $BullFlip  ) && ( $Close > $Reference ))
 			{ #3
                   	  #Process a close in a Bull Signal Sequence ################
-			  # 9 consecutive closes “higher” than the close 4 bars prior constitutes a “sell setup”
+			  # 9 consecutive closes ï¿½higherï¿½ than the close 4 bars prior constitutes a ï¿½sell setupï¿½
 		  	  $Countdown=$Countdown+1;
 		  	  $TD = "TD-Sell $Countdown  $Close  $Reference $BullFlip $BearFlip ";                    
               	  	  if ( $Countdown == 9 )
@@ -467,7 +465,7 @@ if (( $BearFlip ) || ( $BullFlip ))
 			  	  if ( $LOW1 <  $LOW2 )
 					{ #5
 				  	  #Perfect Sell Signal########################
-				  	  #A “sell setup” is “perfected” when the the high of bars 6 and 7
+				  	  #A ï¿½sell setupï¿½ is ï¿½perfectedï¿½ when the the high of bars 6 and 7
 				  	  # in the count are exceeded by the high of bars 8 or 9
 				  	  $TD = "TD-SellPERF* $Countdown $Reference $LOW1";
 				   	  $MSG= "$x1 $ticker Strong_Sell $Close $LOW1 $Reference" ;
